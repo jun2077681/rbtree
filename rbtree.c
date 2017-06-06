@@ -74,8 +74,7 @@ int main(void)
 	printf("total = %d\n", tree_total(rootPtr));
 	printf("nb = %d\n", tree_black_total(rootPtr));
 	printf("bh = %d\n", tree_black_height(rootPtr));
-	bst_print(rootPtr, 0);
-
+	inOrder(rootPtr);
 
 	fclose(fp);
 
@@ -124,8 +123,8 @@ int tree_black_height(TreeNodePtr rootPtr)
 	do
 	{
 		if (get_color(rootPtr) == black)count++;
-		rootPtr = rand() % 2 ? rootPtr->left : rootPtr->right;
-	} while (rootPtr->left != nil && rootPtr->right != nil);
+		rootPtr = rootPtr->right;
+	} while (rootPtr->right != nil);
 	return count;
 }
 void inOrder(TreeNodePtr rootPtr)
