@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <math.h>
 
-typedef enum color { red=1, black } color;
+typedef enum color { red = 1, black } color;
 
 struct treeNode {
 	struct treeNode *left;
@@ -66,7 +66,8 @@ int main(void)
 		else if (data > 0)
 			rb_insert(&rootPtr, node(data));
 		else
-			rb_delete(&rootPtr, node(abs(data)));
+			if (!rb_delete(&rootPtr, node(abs(data))))
+				printf("%d is not exist.\n", abs(data));
 
 		//bst_print(rootPtr, 0);
 		//printf("\n----------------------------------------\n");
@@ -87,7 +88,7 @@ void bst_print(TreeNodePtr rootPtr, int level)
 		bst_print(rootPtr->right, level + 1);
 	for (int i = 0; i < level; i++)
 		printf("	");
-	printf("%d[%s]\n", rootPtr->data,rootPtr->col==red?"R":"B");
+	printf("%d[%s]\n", rootPtr->data, rootPtr->col == red ? "R" : "B");
 	if (rootPtr->left != nil && rootPtr->left != NULL)
 		bst_print(rootPtr->left, level + 1);
 }
@@ -119,7 +120,7 @@ int tree_black_total(TreeNodePtr rootPtr)
 int tree_black_height(TreeNodePtr rootPtr)
 {
 	int count = 0;
-	
+
 	do
 	{
 		if (get_color(rootPtr) == black)count++;
@@ -129,10 +130,10 @@ int tree_black_height(TreeNodePtr rootPtr)
 }
 void inOrder(TreeNodePtr rootPtr)
 {
-	if (rootPtr != NULL && rootPtr!=nil)
+	if (rootPtr != NULL && rootPtr != nil)
 	{
 		inOrder(rootPtr->left);
-		printf("%d[%s]\n", get_data(rootPtr),get_color(rootPtr)==red?"R":"B");
+		printf("%d[%s]\n", get_data(rootPtr), get_color(rootPtr) == red ? "R" : "B");
 		inOrder(rootPtr->right);
 	}
 }
@@ -142,7 +143,7 @@ TreeNodePtr node(int value)
 	TreeNodePtr Ptr = NULL;
 	TreeNodePtr *nodePtr = &Ptr;
 	*nodePtr = malloc(sizeof(TreeNode));
-	if (*nodePtr != NULL){
+	if (*nodePtr != NULL) {
 		(*nodePtr)->data = value;
 		(*nodePtr)->col = red;
 		(*nodePtr)->parent = nil;
@@ -192,7 +193,7 @@ void left_rotate(TreeNodePtr *rootPtr, TreeNodePtr x)
 		parentNode(x)->right = y;
 	y->left = x;
 	x->parent = y;
-	
+
 	setnil();
 }
 void right_rotate(TreeNodePtr *rootPtr, TreeNodePtr y)
@@ -262,7 +263,7 @@ void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
 	TreeNodePtr y = nil;
 	TreeNodePtr x = (*rootPtr);
 
-	while (x != nil && x!=NULL)
+	while (x != nil && x != NULL)
 	{
 		y = x;
 		if (get_data(z) < get_data(x))
@@ -271,7 +272,7 @@ void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
 			x = x->right;
 	}
 	z->parent = y;
-	if (y == NULL || y==nil)
+	if (y == NULL || y == nil)
 		(*rootPtr) = z;
 	else if (get_data(z) < get_data(y))
 		y->left = z;
@@ -287,7 +288,7 @@ void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
 void rb_insert_fixup(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
 	TreeNodePtr y = nil;
-	if (parentNode(z) != NULL && parentNode(z)!=nil)
+	if (parentNode(z) != NULL && parentNode(z) != nil)
 	{
 		while (get_color(parentNode(z)) == red)
 		{
