@@ -21,7 +21,6 @@ typedef TreeNode *TreeNodePtr;
 
 TreeNodePtr node(int data);
 TreeNodePtr nilnode();
-void setnil();
 TreeNodePtr nil;
 
 TreeNodePtr parentNode(TreeNodePtr nodePtr);
@@ -50,17 +49,23 @@ int get_data(TreeNodePtr nodePtr);
 
 void inOrder(TreeNodePtr rootPtr);
 void bst_print(TreeNodePtr rootPtr, int level);
+
+void setnil();
+
 int main(void)
 {
 	srand(time(NULL));
 	TreeNodePtr rootPtr = NULL;
 	TreeNodePtr ptr = NULL;
 	nil = nilnode();
+	setnil();
 
 	FILE *fp = fopen("input.txt", "r");
 	int data;
 	while (fscanf(fp, "%d", &data) != EOF)
 	{
+		if (data == -756)
+			printf("\n");
 		if (data == 0)
 			break;
 		else if (data > 0)
@@ -68,14 +73,15 @@ int main(void)
 		else
 			if (!rb_delete(&rootPtr, node(abs(data))))
 				printf("%d is not exist.\n", abs(data));
-
-		//bst_print(rootPtr, 0);
-		//printf("\n----------------------------------------\n");
+		
+		printf("data : %d\n", data);
+		bst_print(rootPtr, 0);
+		printf("\n----------------------------------------\n");
 	}
 	printf("total = %d\n", tree_total(rootPtr));
 	printf("nb = %d\n", tree_black_total(rootPtr));
 	printf("bh = %d\n", tree_black_height(rootPtr));
-	inOrder(rootPtr);
+	bst_print(rootPtr, 0);
 
 	fclose(fp);
 
@@ -84,12 +90,12 @@ int main(void)
 
 void bst_print(TreeNodePtr rootPtr, int level)
 {
-	if (rootPtr->right != nil && rootPtr->right != NULL)
+	if (rootPtr != rootPtr->right && rootPtr->right != NULL)
 		bst_print(rootPtr->right, level + 1);
 	for (int i = 0; i < level; i++)
 		printf("	");
 	printf("%d[%s]\n", rootPtr->data, rootPtr->col == red ? "R" : "B");
-	if (rootPtr->left != nil && rootPtr->left != NULL)
+	if (rootPtr != rootPtr->left&& rootPtr->left != NULL)
 		bst_print(rootPtr->left, level + 1);
 }
 
@@ -124,8 +130,8 @@ int tree_black_height(TreeNodePtr rootPtr)
 	do
 	{
 		if (get_color(rootPtr) == black)count++;
-		rootPtr = rootPtr->right;
-	} while (rootPtr->right != nil);
+		rootPtr = rand() % 2 ? rootPtr->left : rootPtr->right;
+	} while (rootPtr->right != nil && rootPtr->left != nil);
 	return count;
 }
 void inOrder(TreeNodePtr rootPtr)
@@ -169,15 +175,6 @@ TreeNodePtr nilnode()
 	return (*nodePtr);
 }
 
-void setnil()
-{
-	nil->col = black;
-	nil->data = NULL;
-	nil->left = nil;
-	nil->right = nil;
-	nil->parent = nil;
-}
-
 void left_rotate(TreeNodePtr *rootPtr, TreeNodePtr x)
 {
 	TreeNodePtr y = x->right;
@@ -193,8 +190,6 @@ void left_rotate(TreeNodePtr *rootPtr, TreeNodePtr x)
 		parentNode(x)->right = y;
 	y->left = x;
 	x->parent = y;
-
-	setnil();
 }
 void right_rotate(TreeNodePtr *rootPtr, TreeNodePtr y)
 {
@@ -211,12 +206,10 @@ void right_rotate(TreeNodePtr *rootPtr, TreeNodePtr y)
 		parentNode(y)->right = x;
 	x->right = y;
 	y->parent = x;
-
-	setnil();
 }
 color get_color(TreeNodePtr nodePtr)
 {
-	if (nodePtr != NULL && nodePtr != nil)
+	if (nodePtr != NULL)
 		return nodePtr->col;
 	else
 		return 0;
@@ -260,6 +253,7 @@ TreeNodePtr grandNode(TreeNodePtr nodePtr)
 }
 void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
+//	setnil();
 	TreeNodePtr y = nil;
 	TreeNodePtr x = (*rootPtr);
 
@@ -272,89 +266,79 @@ void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
 			x = x->right;
 	}
 	z->parent = y;
-	if (y == NULL || y == nil)
+	if (y == nil)
 		(*rootPtr) = z;
 	else if (get_data(z) < get_data(y))
 		y->left = z;
 	else
 		y->right = z;
-	z->left = nil;
-	z->right = nil;
 	z->col = red;
 	rb_insert_fixup(rootPtr, z);
-
-	setnil();
 }
 void rb_insert_fixup(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
+	//setnil();
 	TreeNodePtr y = nil;
-	if (parentNode(z) != NULL && parentNode(z) != nil)
+	while (get_color(parentNode(z)) == red)
 	{
-		while (get_color(parentNode(z)) == red)
+		if (parentNode(z) == grandNode(z)->left)
 		{
-			if (parentNode(z) == grandNode(z)->left)
+			y = grandNode(z)->right;
+			if (y != NULL && get_color(y) == red)
 			{
-				y = grandNode(z)->right;
-				if (get_color(y) == red)
-				{
-					parentNode(z)->col = black;
-					y->col = black;
-					grandNode(z)->col = red;
-					z = grandNode(z);
-				}
-				else
-				{
-					if (z == parentNode(z)->right)
-					{
-						z = parentNode(z);
-						left_rotate(rootPtr, z);
-					}
-					parentNode(z)->col = black;
-					grandNode(z)->col = red;
-					right_rotate(rootPtr, grandNode(z));
-				}
+				parentNode(z)->col = black;
+				y->col = black;
+				grandNode(z)->col = red;
+				z = grandNode(z);
 			}
 			else
 			{
-				y = grandNode(z)->left;
-				if (get_color(y) == red)
+				if (z == parentNode(z)->right)
 				{
-					parentNode(z)->col = black;
-					y->col = black;
-					grandNode(z)->col = red;
-					z = grandNode(z);
+					z = parentNode(z);
+					left_rotate(rootPtr, z);
 				}
-				else
+				parentNode(z)->col = black;
+				grandNode(z)->col = red;
+				right_rotate(rootPtr, grandNode(z));
+			}
+		}
+		else
+		{
+			y = grandNode(z)->left;
+			if (y!=NULL && get_color(y) == red)
+			{
+				parentNode(z)->col = black;
+				y->col = black;
+				grandNode(z)->col = red;
+				z = grandNode(z);
+			}
+			else
+			{
+				if (z == parentNode(z)->left)
 				{
-					if (z == parentNode(z)->left)
-					{
-						z = parentNode(z);
-						right_rotate(rootPtr, z);
-					}
-					parentNode(z)->col = black;
-					grandNode(z)->col = red;
-					left_rotate(rootPtr, grandNode(z));
+					z = parentNode(z);
+					right_rotate(rootPtr, z);
 				}
+				parentNode(z)->col = black;
+				grandNode(z)->col = red;
+				left_rotate(rootPtr, grandNode(z));
 			}
 		}
 	}
 	(*rootPtr)->col = black;
-
-	setnil();
 }
 
 void transplant(TreeNodePtr *rootPtr, TreeNodePtr u, TreeNodePtr v)
 {
-	if (parentNode(u) == NULL || parentNode(u) == nil)
+	if (parentNode(u) == nil)
 		(*rootPtr) = v;
 	else if (u == parentNode(u)->left)
 		parentNode(u)->left = v;
 	else
 		parentNode(u)->right = v;
-	if (v != NULL && v != nil)
-		v->parent = parentNode(u);
-
-	setnil();
+	
+	v->parent = parentNode(u);
 }
 
 TreeNodePtr tree_minimum(TreeNodePtr x)
@@ -366,6 +350,7 @@ TreeNodePtr tree_minimum(TreeNodePtr x)
 
 bool rb_delete(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
+//	setnil();
 	TreeNodePtr x = nil;
 	TreeNodePtr delNode = (*rootPtr);
 
@@ -403,19 +388,24 @@ bool rb_delete(TreeNodePtr *rootPtr, TreeNodePtr z)
 		y_origin = get_color(y);
 		x = y->right;
 
-		transplant(rootPtr, y, y->right);
-		y->right = delNode->right;
-		y->right->parent = y;
+		if (parentNode(y) == delNode)
+			x->parent = y;
+		else
+		{
+			transplant(rootPtr, y, y->right);
+			y->right = delNode->right;
+			y->right->parent = y;
+		}
 
-		transplant(rootPtr, delNode, y);
-		y->left = delNode->left;
-		y->left->parent = y;
-		y->col = get_color(delNode);
+			transplant(rootPtr, delNode, y);
+			y->left = delNode->left;
+			y->left->parent = y;
+			y->col = get_color(delNode);
+		
 	}
 	if (y_origin == black)
 		rb_delete_fixup(rootPtr, x);
 
-	setnil();
 	free(delNode);
 	return true;
 }
@@ -424,6 +414,7 @@ bool rb_delete(TreeNodePtr *rootPtr, TreeNodePtr z)
 
 void rb_delete_fixup(TreeNodePtr *rootPtr, TreeNodePtr x)
 {
+	//setnil();
 	TreeNodePtr w = nil;
 	while (x != (*rootPtr) && get_color(x) == black)
 	{
@@ -433,7 +424,7 @@ void rb_delete_fixup(TreeNodePtr *rootPtr, TreeNodePtr x)
 			if (get_color(w) == red)
 			{
 				w->col = black;
-				parentNode(w)->col = red;
+				parentNode(x)->col = red;
 				left_rotate(rootPtr, parentNode(x));
 				w = parentNode(x)->right;
 			}
@@ -465,7 +456,7 @@ void rb_delete_fixup(TreeNodePtr *rootPtr, TreeNodePtr x)
 			if (get_color(w) == red)
 			{
 				w->col = black;
-				parentNode(w)->col = red;
+				parentNode(x)->col = red;
 				right_rotate(rootPtr, parentNode(x));
 				w = parentNode(x)->left;
 			}
@@ -492,6 +483,13 @@ void rb_delete_fixup(TreeNodePtr *rootPtr, TreeNodePtr x)
 		}
 	}
 	x->col = black;
-	setnil();
 }
 
+void setnil()
+{
+	nil->col = black;
+	nil->left = nil;
+	nil->right = nil;
+	nil->parent = nil;
+	nil->data = NULL;
+}
