@@ -57,16 +57,30 @@ void printGivenLevel(TreeNodePtr rootPtr, int level);
 int height(TreeNodePtr node);
 
 
-int main(void)
+int main(int argc, char* argv[])
 {
 	srand(time(NULL));
 	TreeNodePtr rootPtr = NULL;
 	TreeNodePtr ptr = NULL;
 	nil = nilnode();
 	setnil();
+	FILE *fp = NULL;
 
-	FILE *fp = fopen("input.txt", "r");
+	if (argc < 2)
+		fp = fopen("input.txt", "r");
+	else
+		fp = fopen(argv[1], "r");
+
+	if (fp == NULL)
+	{
+		printf("file open error\n");
+		return -1;
+	}
+
 	int data;
+	int in_count = 0;
+	int del_count = 0;
+	int mis_count = 0;
 	while (fscanf(fp, "%d", &data) != EOF)
 	{
 		/*if (data == -756)
@@ -74,10 +88,20 @@ int main(void)
 		if (data == 0)
 			break;
 		else if (data > 0)
+		{
+			in_count++;
 			rb_insert(&rootPtr, node(data));
+		}
 		else
+		{
 			if (!rb_delete(&rootPtr, node(abs(data))))
-				printf("%d is not exist.\n", abs(data));
+			{
+			//	printf("%d is not exist.\n", abs(data));
+				mis_count++;
+			}
+			else
+				del_count++;
+		}
 		/*inOrder(rootPtr);
 		printf("--------------------\n");
 		
@@ -85,7 +109,12 @@ int main(void)
 		bst_print(rootPtr, 0);
 		printf("\n----------------------------------------\n");*/
 	}
+
+	printf("filename = %s\n", argc < 2 ? "input.txt" : argv[1]);
 	printf("total = %d\n", tree_total(rootPtr));
+	printf("insert = %d\n", in_count);
+	printf("deleted = %d\n", del_count);
+	printf("miss = %d\n", mis_count);
 	printf("nb = %d\n", tree_black_total(rootPtr));
 	printf("bh = %d\n", tree_black_height(rootPtr));
 	/*int count5 = 0;
@@ -99,6 +128,7 @@ int main(void)
 	printf("%d %d", count4, count5);
 	printLevelOrder(rootPtr);
 	bst_print(rootPtr, 0);*/
+
 	inOrder(rootPtr);
 	fclose(fp);
 
@@ -196,7 +226,7 @@ void inOrder(TreeNodePtr rootPtr)
 	if (rootPtr != NULL && rootPtr != nil)
 	{
 		inOrder(rootPtr->left);
-		printf("%d[%s]\n", get_data(rootPtr), get_color(rootPtr) == red ? "R" : "B");
+		printf("%d %s\n", get_data(rootPtr), get_color(rootPtr) == red ? "R" : "B");
 		inOrder(rootPtr->right);
 	}
 }
