@@ -52,6 +52,11 @@ void bst_print(TreeNodePtr rootPtr, int level);
 
 void setnil();
 
+void printLevelOrder(TreeNodePtr rootPtr);
+void printGivenLevel(TreeNodePtr rootPtr, int level);
+int height(TreeNodePtr node);
+
+
 int main(void)
 {
 	srand(time(NULL));
@@ -64,8 +69,8 @@ int main(void)
 	int data;
 	while (fscanf(fp, "%d", &data) != EOF)
 	{
-		if (data == -756)
-			printf("\n");
+		/*if (data == -756)
+			printf("\n");*/
 		if (data == 0)
 			break;
 		else if (data > 0)
@@ -73,20 +78,67 @@ int main(void)
 		else
 			if (!rb_delete(&rootPtr, node(abs(data))))
 				printf("%d is not exist.\n", abs(data));
+		/*inOrder(rootPtr);
+		printf("--------------------\n");
 		
 		printf("data : %d\n", data);
 		bst_print(rootPtr, 0);
-		printf("\n----------------------------------------\n");
+		printf("\n----------------------------------------\n");*/
 	}
 	printf("total = %d\n", tree_total(rootPtr));
 	printf("nb = %d\n", tree_black_total(rootPtr));
 	printf("bh = %d\n", tree_black_height(rootPtr));
-//	bst_print(rootPtr, 0);
+	/*int count5 = 0;
+	int count4 = 0;
+	for (int i = 0; i < 1000000; i++)
+	{
+		int a = tree_black_height(rootPtr);
+		if (a == 5) count5++;
+		else if (a == 4) count4++;
+	}
+	printf("%d %d", count4, count5);
+	printLevelOrder(rootPtr);
+	bst_print(rootPtr, 0);*/
 	inOrder(rootPtr);
-
 	fclose(fp);
 
 	return;
+}
+
+void printLevelOrder(TreeNodePtr rootPtr)
+{
+	int h = height(rootPtr);
+	int i;
+	for (i = 1; i <= h; i++)
+		printGivenLevel(rootPtr, i);
+}
+
+void printGivenLevel(TreeNodePtr rootPtr, int level)
+{
+	if (rootPtr == nil || rootPtr == NULL)
+		return;
+	if (level == 1)
+		printf("%d[%s]\n", rootPtr->data,rootPtr->col==red?"R":"B");
+	else if (level > 1)
+	{
+		printGivenLevel(rootPtr->left, level - 1);
+		printGivenLevel(rootPtr->right, level - 1);
+	}
+}
+
+int height(TreeNodePtr node)
+{
+	if (node == nil)
+		return 0;
+	else
+	{
+		int lheight = height(node->left);
+		int rheight = height(node->right);
+
+		if (lheight > rheight)
+			return(lheight + 1);
+		else return(rheight + 1);
+	}
 }
 
 void bst_print(TreeNodePtr rootPtr, int level)
@@ -126,15 +178,19 @@ int tree_black_total(TreeNodePtr rootPtr)
 
 int tree_black_height(TreeNodePtr rootPtr)
 {
+	TreeNodePtr x = rootPtr;
 	int count = 0;
-
-	do
+	int i;
+	while (x != nil)
 	{
-		if (get_color(rootPtr) == black)count++;
-		rootPtr = rand() % 2 ? rootPtr->left : rootPtr->right;
-	} while (rootPtr->right != nil && rootPtr->left != nil);
+		i = rand() % 2;
+		x = i ? x->left : x->right;
+		if (x->col == black)
+			count++;
+	}
 	return count;
 }
+
 void inOrder(TreeNodePtr rootPtr)
 {
 	if (rootPtr != NULL && rootPtr != nil)
@@ -224,13 +280,13 @@ int get_data(TreeNodePtr nodePtr)
 }
 TreeNodePtr parentNode(TreeNodePtr nodePtr)
 {
-	if (nodePtr != NULL&& nodePtr != nil)
+	if (nodePtr != NULL)
 		return nodePtr->parent;
 	else return nil;
 }
 TreeNodePtr siblingNode(TreeNodePtr nodePtr)
 {
-	if (nodePtr == NULL || nodePtr == nil)
+	if (nodePtr == NULL)
 		return nil;
 	else if (nodePtr->parent != NULL && nodePtr->parent != nil)
 	{
@@ -244,12 +300,12 @@ TreeNodePtr siblingNode(TreeNodePtr nodePtr)
 }
 TreeNodePtr uncleNode(TreeNodePtr nodePtr)
 {
-	if (nodePtr != NULL && nodePtr != nil)	return siblingNode(nodePtr->parent);
+	if (nodePtr != NULL)	return siblingNode(nodePtr->parent);
 	else return nil;
 }
 TreeNodePtr grandNode(TreeNodePtr nodePtr)
 {
-	if (nodePtr != NULL && nodePtr != nil)	return nodePtr->parent->parent;
+	if (nodePtr != NULL)	return nodePtr->parent->parent;
 	else return nil;
 }
 void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
@@ -278,7 +334,7 @@ void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
 }
 void rb_insert_fixup(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
-	//setnil();
+	
 	TreeNodePtr y = nil;
 	while (get_color(parentNode(z)) == red)
 	{
@@ -415,7 +471,7 @@ bool rb_delete(TreeNodePtr *rootPtr, TreeNodePtr z)
 
 void rb_delete_fixup(TreeNodePtr *rootPtr, TreeNodePtr x)
 {
-	//setnil();
+	
 	TreeNodePtr w = nil;
 	while (x != (*rootPtr) && get_color(x) == black)
 	{
