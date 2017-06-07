@@ -74,7 +74,8 @@ int main(void)
 	printf("total = %d\n", tree_total(rootPtr));
 	printf("nb = %d\n", tree_black_total(rootPtr));
 	printf("bh = %d\n", tree_black_height(rootPtr));
-	bst_print(rootPtr, 0);
+//	bst_print(rootPtr, 0);
+	inOrder(rootPtr);
 
 
 	fclose(fp);
