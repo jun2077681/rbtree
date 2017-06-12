@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <math.h>
+#include <windows.h>
+#include <tchar.h>
 
 typedef enum color { red = 1, black } color;
 
@@ -13,7 +14,6 @@ struct treeNode {
 	int data;
 	color col;
 };
-
 
 typedef struct treeNode TreeNode;
 typedef TreeNode *TreeNodePtr;
@@ -56,83 +56,114 @@ void printLevelOrder(TreeNodePtr rootPtr);
 void printGivenLevel(TreeNodePtr rootPtr, int level);
 int height(TreeNodePtr node);
 
+int search_tree_file(wchar_t search_path[], WIN32_FIND_DATA FindData);
 
-int main(int argc, char* argv[])
+int main(void)
 {
-	srand(time(NULL));
-	TreeNodePtr rootPtr = NULL;
-	TreeNodePtr ptr = NULL;
-	nil = nilnode();
-	setnil();
-	FILE *fp = NULL;
+	WIN32_FIND_DATA FindData;
+	wchar_t path[255];
+	GetCurrentDirectory(wcslen(path), path);
+	wchar_t path2[] = L"\\input\\*";
 
-	if (argc < 2)
-		fp = fopen("input.txt", "r");
-	else
-		fp = fopen(argv[1], "r");
+	wcscat(path, path2);
+	HANDLE hFind = FindFirstFile(path, &FindData);
+	search_tree_file(path, FindData);
 
-	if (fp == NULL)
+	return 0;
+}
+
+int search_tree_file(wchar_t search_path[], WIN32_FIND_DATA FindData)
+{
+	wchar_t path[255] = { 0 };
+	wcscpy(path, search_path);
+
+	HANDLE hFind = FindFirstFile(path, &FindData);
+
+	if (hFind == INVALID_HANDLE_VALUE)
 	{
-		printf("file open error\n");
+		FindClose(hFind);
 		return -1;
 	}
-
-	int data;
-	int in_count = 0;
-	int del_count = 0;
-	int mis_count = 0;
-	while (fscanf(fp, "%d", &data) != EOF)
+	do
 	{
-		/*if (data == -756)
-			printf("\n");*/
-		if (data == 0)
-			break;
-		else if (data > 0)
+		if ((FindData.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) != 0)
 		{
-			in_count++;
-			rb_insert(&rootPtr, node(data));
+			if (FindData.cFileName[0] == '.') continue;
+			wchar_t filename[255];
+			wcscpy(filename, path);
+			(*wcsrchr(filename, '*')) = '\0';
+			wcscat(filename, FindData.cFileName);
+			wcscat(filename, L"\\*");
+			search_tree_file(filename, FindData);
 		}
 		else
 		{
-			if (!rb_delete(&rootPtr, node(abs(data))))
+			wchar_t *tmp = wcsrchr(FindData.cFileName, '.');
+			wchar_t txt = L".txt";
+			if (!wcscmp(tmp, &txt))continue;
+
+			TreeNodePtr rootPtr = NULL;
+			TreeNodePtr ptr = NULL;
+			nil = nilnode();
+			setnil();
+
+			wchar_t filename[255];
+			wcscpy(filename, path);
+			(*wcsrchr(filename, '*')) = '\0';
+			wcscat(filename, FindData.cFileName);
+			FILE *fp = _wfopen(filename, L"r");
+
+			char tmpdata[255] = { 0 };
+			int data;
+			int in_count = 0;
+			int del_count = 0;
+			int mis_count = 0;
+			int scan;
+			bool err = false;
+			while (fscanf(fp, "%s", &tmpdata) != EOF)
 			{
-			//	printf("%d is not exist.\n", abs(data));
-				mis_count++;
+				char *end;
+				data = strtol(tmpdata, &end, 10);
+				if (end==tmpdata)
+				{
+					err = true;
+					break;
+				}
+				else if (data == 0)
+					break;
+				else if (data > 0)
+				{
+					in_count++;
+					rb_insert(&rootPtr, node(data));
+				}
+				else
+				{
+					if (!rb_delete(&rootPtr, node(abs(data))))
+						mis_count++;
+					else
+						del_count++;
+				}
 			}
-			else
-				del_count++;
+
+			if (!err && !data)
+			{
+				printf("filename=%S\n", FindData.cFileName);
+				printf("total = %d\n", tree_total(rootPtr));
+				printf("insert = %d\n", in_count);
+				printf("deleted = %d\n", del_count);
+				printf("miss = %d\n", mis_count);
+				printf("nb = %d\n", tree_black_total(rootPtr));
+				printf("bh = %d\n", tree_black_height(rootPtr));
+				inOrder(rootPtr);
+			}
+
+			fclose(fp);
+
 		}
-		/*inOrder(rootPtr);
-		printf("--------------------\n");
-		
-		printf("data : %d\n", data);
-		bst_print(rootPtr, 0);
-		printf("\n----------------------------------------\n");*/
-	}
+	} while (FindNextFile(hFind, &FindData));
 
-	printf("filename = %s\n", argc < 2 ? "input.txt" : argv[1]);
-	printf("total = %d\n", tree_total(rootPtr));
-	printf("insert = %d\n", in_count);
-	printf("deleted = %d\n", del_count);
-	printf("miss = %d\n", mis_count);
-	printf("nb = %d\n", tree_black_total(rootPtr));
-	printf("bh = %d\n", tree_black_height(rootPtr));
-	/*int count5 = 0;
-	int count4 = 0;
-	for (int i = 0; i < 1000000; i++)
-	{
-		int a = tree_black_height(rootPtr);
-		if (a == 5) count5++;
-		else if (a == 4) count4++;
-	}
-	printf("%d %d", count4, count5);
-	printLevelOrder(rootPtr);
-	bst_print(rootPtr, 0);*/
-
-	inOrder(rootPtr);
-	fclose(fp);
-
-	return;
+	FindClose(hFind);
+	return 0;
 }
 
 void printLevelOrder(TreeNodePtr rootPtr)
@@ -148,7 +179,7 @@ void printGivenLevel(TreeNodePtr rootPtr, int level)
 	if (rootPtr == nil || rootPtr == NULL)
 		return;
 	if (level == 1)
-		printf("%d[%s]\n", rootPtr->data,rootPtr->col==red?"R":"B");
+		printf("%d[%s]\n", rootPtr->data, rootPtr->col == red ? "R" : "B");
 	else if (level > 1)
 	{
 		printGivenLevel(rootPtr->left, level - 1);
@@ -340,7 +371,7 @@ TreeNodePtr grandNode(TreeNodePtr nodePtr)
 }
 void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
-//	setnil();
+	//	setnil();
 	TreeNodePtr y = nil;
 	TreeNodePtr x = (*rootPtr);
 
@@ -364,7 +395,7 @@ void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
 }
 void rb_insert_fixup(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
-	
+
 	TreeNodePtr y = nil;
 	while (get_color(parentNode(z)) == red)
 	{
@@ -393,7 +424,7 @@ void rb_insert_fixup(TreeNodePtr *rootPtr, TreeNodePtr z)
 		else
 		{
 			y = grandNode(z)->left;
-			if (y!=NULL && get_color(y) == red)
+			if (y != NULL && get_color(y) == red)
 			{
 				parentNode(z)->col = black;
 				y->col = black;
@@ -424,7 +455,7 @@ void transplant(TreeNodePtr *rootPtr, TreeNodePtr u, TreeNodePtr v)
 		parentNode(u)->left = v;
 	else
 		parentNode(u)->right = v;
-	
+
 	v->parent = parentNode(u);
 }
 
@@ -437,7 +468,7 @@ TreeNodePtr tree_minimum(TreeNodePtr x)
 
 bool rb_delete(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
-//	setnil();
+	//	setnil();
 	TreeNodePtr x = nil;
 	TreeNodePtr delNode = (*rootPtr);
 
@@ -484,11 +515,11 @@ bool rb_delete(TreeNodePtr *rootPtr, TreeNodePtr z)
 			y->right->parent = y;
 		}
 
-			transplant(rootPtr, delNode, y);
-			y->left = delNode->left;
-			y->left->parent = y;
-			y->col = get_color(delNode);
-		
+		transplant(rootPtr, delNode, y);
+		y->left = delNode->left;
+		y->left->parent = y;
+		y->col = get_color(delNode);
+
 	}
 	if (y_origin == black)
 		rb_delete_fixup(rootPtr, x);
@@ -501,7 +532,7 @@ bool rb_delete(TreeNodePtr *rootPtr, TreeNodePtr z)
 
 void rb_delete_fixup(TreeNodePtr *rootPtr, TreeNodePtr x)
 {
-	
+
 	TreeNodePtr w = nil;
 	while (x != (*rootPtr) && get_color(x) == black)
 	{
