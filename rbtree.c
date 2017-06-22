@@ -29,6 +29,7 @@ TreeNodePtr siblingNode(TreeNodePtr nodePtr);
 TreeNodePtr grandNode(TreeNodePtr nodePtr);
 
 TreeNodePtr tree_minimum(TreeNodePtr x);
+TreeNodePtr tree_maximum(TreeNodePtr x);
 void transplant(TreeNodePtr *rootPtr, TreeNodePtr u, TreeNodePtr v);
 
 void left_rotate(TreeNodePtr *rootPtr, TreeNodePtr x);
@@ -56,116 +57,69 @@ void printLevelOrder(TreeNodePtr rootPtr);
 void printGivenLevel(TreeNodePtr rootPtr, int level);
 int height(TreeNodePtr node);
 
-int search_tree_file(wchar_t search_path[], WIN32_FIND_DATA FindData);
+TreeNodePtr node_exist(TreeNodePtr rootPtr, int value);
 
-int main(void)
+TreeNodePtr successor(TreeNodePtr rootPtr,TreeNodePtr target);
+TreeNodePtr predecessor(TreeNodePtr rootPtr,TreeNodePtr target);
+
+void copy_tree(TreeNodePtr rootPtr, TreeNodePtr *copyPtr);
+bool is_exist(TreeNodePtr rootPtr, TreeNodePtr x);
+
+int main(int argc, char* argv[])
 {
-	WIN32_FIND_DATA FindData;
-	wchar_t path[255];
-	GetCurrentDirectory(wcslen(path), path);
-	wchar_t path2[] = L"\\input\\*";
+	srand(time(NULL));
+	TreeNodePtr rootPtr = NULL;
+	TreeNodePtr ptr = NULL;
+	nil = nilnode();
+	setnil();
+	FILE *fp_input = fopen("input.txt", "r");
+	FILE *fp_output = fopen("output.txt", "w");
+	FILE *fp_search = fopen("search.txt", "r");
 
-	wcscat(path, path2);
-	HANDLE hFind = FindFirstFile(path, &FindData);
-	search_tree_file(path, FindData);
-
-	return 0;
-}
-
-int search_tree_file(wchar_t search_path[], WIN32_FIND_DATA FindData)
-{
-	wchar_t path[255] = { 0 };
-	wcscpy(path, search_path);
-
-	HANDLE hFind = FindFirstFile(path, &FindData);
-
-	if (hFind == INVALID_HANDLE_VALUE)
+	if (fp_input == NULL || fp_output == NULL || fp_search == NULL)
 	{
-		FindClose(hFind);
+		printf("file open error\n");
 		return -1;
 	}
-	do
+
+	int data;
+
+	while (fscanf(fp_input, "%d", &data) != EOF)
 	{
-		if ((FindData.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) != 0)
+		if (data == 0)
+			break;
+		else if (data > 0)
 		{
-			if (FindData.cFileName[0] == '.') continue;
-			wchar_t filename[255];
-			wcscpy(filename, path);
-			(*wcsrchr(filename, '*')) = '\0';
-			wcscat(filename, FindData.cFileName);
-			wcscat(filename, L"\\*");
-			search_tree_file(filename, FindData);
+			rb_insert(&rootPtr, node(data));
 		}
 		else
 		{
-			wchar_t *tmp = wcsrchr(FindData.cFileName, '.');
-			wchar_t txt = L".txt";
-			if (!wcscmp(tmp, &txt))continue;
-
-			TreeNodePtr rootPtr = NULL;
-			TreeNodePtr ptr = NULL;
-			nil = nilnode();
-			setnil();
-
-			wchar_t filename[255];
-			wcscpy(filename, path);
-			(*wcsrchr(filename, '*')) = '\0';
-			wcscat(filename, FindData.cFileName);
-			FILE *fp = _wfopen(filename, L"r");
-
-			char tmpdata[255] = { 0 };
-			int data;
-			int in_count = 0;
-			int del_count = 0;
-			int mis_count = 0;
-			int scan;
-			bool err = false;
-			while (fscanf(fp, "%s", &tmpdata) != EOF)
-			{
-				char *end;
-				data = strtol(tmpdata, &end, 10);
-				if (end==tmpdata)
-				{
-					err = true;
-					break;
-				}
-				else if (data == 0)
-					break;
-				else if (data > 0)
-				{
-					in_count++;
-					rb_insert(&rootPtr, node(data));
-				}
-				else
-				{
-					if (!rb_delete(&rootPtr, node(abs(data))))
-						mis_count++;
-					else
-						del_count++;
-				}
-			}
-
-			if (!err && !data)
-			{
-				printf("filename=%S\n", FindData.cFileName);
-				printf("total = %d\n", tree_total(rootPtr));
-				printf("insert = %d\n", in_count);
-				printf("deleted = %d\n", del_count);
-				printf("miss = %d\n", mis_count);
-				printf("nb = %d\n", tree_black_total(rootPtr));
-				printf("bh = %d\n", tree_black_height(rootPtr));
-				inOrder(rootPtr);
-			}
-
-			fclose(fp);
-
+			rb_delete(&rootPtr, node(abs(data)));
 		}
-	} while (FindNextFile(hFind, &FindData));
+	}
 
-	FindClose(hFind);
-	return 0;
+	while (fscanf(fp_search, "%d", &data) != EOF)
+	{
+		char temp1[100] = { 0 };
+		char temp2[100] = { 0 };
+		char temp3[100] = { 0 };
+		if (data == 0)
+		{
+			fprintf(fp_output,"0");
+			break;
+		}
+		fprintf(fp_output,"%s %s %s\n", 
+			predecessor(rootPtr,node_exist(rootPtr, data))->data !=0? itoa(predecessor(rootPtr, node_exist(rootPtr, data))->data,temp1,10):"NIL",
+			is_exist(rootPtr, node(data))?itoa(data,temp2,10):"NIL",
+			successor(rootPtr,node_exist(rootPtr, data))->data!=0?itoa(successor(rootPtr, node_exist(rootPtr, data))->data,temp3,10):"NIL");
+	}
+
+	fclose(fp_input);
+	fclose(fp_output);
+	fclose(fp_search);
+
+	return;
 }
-
 void printLevelOrder(TreeNodePtr rootPtr)
 {
 	int h = height(rootPtr);
@@ -173,7 +127,6 @@ void printLevelOrder(TreeNodePtr rootPtr)
 	for (i = 1; i <= h; i++)
 		printGivenLevel(rootPtr, i);
 }
-
 void printGivenLevel(TreeNodePtr rootPtr, int level)
 {
 	if (rootPtr == nil || rootPtr == NULL)
@@ -186,7 +139,6 @@ void printGivenLevel(TreeNodePtr rootPtr, int level)
 		printGivenLevel(rootPtr->right, level - 1);
 	}
 }
-
 int height(TreeNodePtr node)
 {
 	if (node == nil)
@@ -201,6 +153,115 @@ int height(TreeNodePtr node)
 		else return(rheight + 1);
 	}
 }
+bool is_exist(TreeNodePtr rootPtr, TreeNodePtr x)
+{
+	TreeNodePtr tempPtr = rootPtr;
+	while (tempPtr != nil && x->data != tempPtr->data)
+	{
+		if (tempPtr->data > x->data)
+			tempPtr = tempPtr->left;
+		else
+			tempPtr = tempPtr->right;
+	}
+
+	return tempPtr != nil;
+}
+
+
+TreeNodePtr node_exist(TreeNodePtr rootPtr, int value)
+{
+	TreeNodePtr findPtr = rootPtr;
+	while (findPtr != nil && findPtr->data != value)
+	{
+		if (findPtr->data > value)
+			findPtr = findPtr->left;
+		else
+			findPtr = findPtr->right;
+	}
+	if (findPtr == nil)
+		return node(value);
+	else
+		return findPtr;
+}
+
+TreeNodePtr successor(TreeNodePtr rootPtr, TreeNodePtr target)
+{
+	if (target->parent == nil && target->col == red)
+	{
+		TreeNodePtr copyPtr;
+		copy_tree(rootPtr, &copyPtr);
+
+		rb_insert(&copyPtr, target);
+
+		TreeNodePtr tempPtr = successor(copyPtr, target);
+
+		return node_exist(rootPtr, tempPtr->data);
+	}
+
+	if (tree_maximum(rootPtr) == target)
+		return nil;
+
+	if (target->right != nil)
+		return tree_minimum(target->right);
+
+	TreeNodePtr temp = target->parent;
+
+	while (temp != nil && target == temp->right)
+	{
+		target = temp;
+		temp = temp->parent;
+	}
+	return temp;
+}
+
+TreeNodePtr predecessor(TreeNodePtr rootPtr, TreeNodePtr target)
+{
+	if (target->parent == nil && target->col == red)
+	{
+		TreeNodePtr copyPtr;
+		copy_tree(rootPtr, &copyPtr);
+
+		rb_insert(&copyPtr, target);
+
+		TreeNodePtr tempPtr = predecessor(copyPtr, target);
+
+		return node_exist(rootPtr, tempPtr->data);
+	}
+
+	if (tree_minimum(rootPtr) == target)
+		return nil;
+	
+	if (target->left != nil)
+		return tree_maximum(target->left);
+
+
+
+	TreeNodePtr temp = target->parent;
+
+	while (temp != nil && target == temp->left)
+	{
+		target = temp;
+		temp = temp->parent;
+	}
+	return temp;
+}
+
+void copy_tree(TreeNodePtr rootPtr, TreeNodePtr *copyPtr)
+{
+	(*copyPtr) = node(rootPtr->data);
+	(*copyPtr)->col = rootPtr->col;
+	(*copyPtr)->parent = rootPtr->parent;
+	if (rootPtr != nil)
+	{
+		(*copyPtr)->left = node(rootPtr->left);
+		(*copyPtr)->left->col = rootPtr->left->col;
+		(*copyPtr)->right = node(rootPtr->right);
+		(*copyPtr)->right->col = rootPtr->right->col;
+		copy_tree(rootPtr->left, &((*copyPtr)->left));
+		copy_tree(rootPtr->right, &((*copyPtr)->right));
+	}
+
+}
 
 void bst_print(TreeNodePtr rootPtr, int level)
 {
@@ -212,7 +273,6 @@ void bst_print(TreeNodePtr rootPtr, int level)
 	if (rootPtr != rootPtr->left&& rootPtr->left != NULL)
 		bst_print(rootPtr->left, level + 1);
 }
-
 int tree_total(TreeNodePtr rootPtr)
 {
 	int count = 0;
@@ -224,7 +284,6 @@ int tree_total(TreeNodePtr rootPtr)
 	}
 	return count;
 }
-
 int tree_black_total(TreeNodePtr rootPtr)
 {
 	int count = 0;
@@ -236,7 +295,6 @@ int tree_black_total(TreeNodePtr rootPtr)
 	}
 	return count;
 }
-
 int tree_black_height(TreeNodePtr rootPtr)
 {
 	TreeNodePtr x = rootPtr;
@@ -251,7 +309,6 @@ int tree_black_height(TreeNodePtr rootPtr)
 	}
 	return count;
 }
-
 void inOrder(TreeNodePtr rootPtr)
 {
 	if (rootPtr != NULL && rootPtr != nil)
@@ -261,9 +318,10 @@ void inOrder(TreeNodePtr rootPtr)
 		inOrder(rootPtr->right);
 	}
 }
-
 TreeNodePtr node(int value)
 {
+	if (value == 0)
+		return nil;
 	TreeNodePtr Ptr = NULL;
 	TreeNodePtr *nodePtr = &Ptr;
 	*nodePtr = malloc(sizeof(TreeNode));
@@ -277,7 +335,6 @@ TreeNodePtr node(int value)
 
 	return (*nodePtr);
 }
-
 TreeNodePtr nilnode()
 {
 	TreeNodePtr Ptr = NULL;
@@ -292,7 +349,6 @@ TreeNodePtr nilnode()
 	}
 	return (*nodePtr);
 }
-
 void left_rotate(TreeNodePtr *rootPtr, TreeNodePtr x)
 {
 	TreeNodePtr y = x->right;
@@ -371,7 +427,6 @@ TreeNodePtr grandNode(TreeNodePtr nodePtr)
 }
 void rb_insert(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
-	//	setnil();
 	TreeNodePtr y = nil;
 	TreeNodePtr x = (*rootPtr);
 
@@ -446,7 +501,6 @@ void rb_insert_fixup(TreeNodePtr *rootPtr, TreeNodePtr z)
 	}
 	(*rootPtr)->col = black;
 }
-
 void transplant(TreeNodePtr *rootPtr, TreeNodePtr u, TreeNodePtr v)
 {
 	if (parentNode(u) == nil)
@@ -458,14 +512,22 @@ void transplant(TreeNodePtr *rootPtr, TreeNodePtr u, TreeNodePtr v)
 
 	v->parent = parentNode(u);
 }
-
 TreeNodePtr tree_minimum(TreeNodePtr x)
 {
-	while (x->left != nil)
-		x = x->left;
-	return x;
-}
+	TreeNodePtr currentPtr = x;
 
+	while (currentPtr->left != nil)
+		currentPtr = currentPtr->left;
+	return currentPtr;
+}
+TreeNodePtr tree_maximum(TreeNodePtr x)
+{
+	TreeNodePtr currentPtr = x;
+
+	while (currentPtr->right != nil)
+		currentPtr = currentPtr->right;
+	return currentPtr;
+}
 bool rb_delete(TreeNodePtr *rootPtr, TreeNodePtr z)
 {
 	//	setnil();
@@ -527,9 +589,6 @@ bool rb_delete(TreeNodePtr *rootPtr, TreeNodePtr z)
 	free(delNode);
 	return true;
 }
-
-
-
 void rb_delete_fixup(TreeNodePtr *rootPtr, TreeNodePtr x)
 {
 
@@ -602,7 +661,6 @@ void rb_delete_fixup(TreeNodePtr *rootPtr, TreeNodePtr x)
 	}
 	x->col = black;
 }
-
 void setnil()
 {
 	nil->col = black;
